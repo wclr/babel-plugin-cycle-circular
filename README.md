@@ -109,8 +109,8 @@ and will proxy only if last identifier of reference ends with `$` for example `c
   "presets": ["es2015"],
   "plugins": [
     ["cycle-circular", {
-        identifiers: ["\\$$"] 
-        exlude: ["**/models/**"]  
+        "identifiers": ["\\$$"] 
+        "exlude": ["**/models/**"]  
     }]
   ]
 }
