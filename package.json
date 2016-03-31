@@ -13,6 +13,7 @@
     "build": "babel src -d lib",
     "build:watch": "babel src -w -d lib",
     "make-fixtures": "node -r babel-register test/make-fixtures",
+    "make-fixtures:watch": "node-dev --respawn -r babel-register test/make-fixtures --yes",
     "test": "mocha --compilers js:babel-register test/index.js",
     "test:watch": "npm run test -- --watch",
     "prepublish": "npm run clean && npm run build"

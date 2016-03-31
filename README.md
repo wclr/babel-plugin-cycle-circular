@@ -38,26 +38,26 @@ sacrifice functional style and do the following with your hands:
 
 ```js
 // import subject which is usually not needed
-import {Subject} from './component1'
+import {Subject} from 'rx'
 import {ComponentFoo} from './ComponentFoo'
 import {ComponentBar} from './ComponentBar'
 
 const main = ({DOM, HTTP}) => {
   // declare proxy subject which will be used to subscribe 
   // to target stream, and be a source for consumption
-  const valueProxy = new Subject()
+  const valueProxy$ = new Subject()
   // make proxy stream safe - when it ends (or terminates) 
   // remove subscription to prevent memory leak 
-  const value$SafeProxy = valueProxy.finally(() => {
-    value$ProxySub.dispose()
+  const valueSafeProxy$ = valueProxy$.finally(() => {
+    valueProxySub.dispose()
   })
 
-  const componentFoo = ComponentFoo({value$SafeProxy, DOM})
+  const componentFoo = ComponentFoo({valueSafeProxy$, DOM})
   const componentBar = ComponentBar({HTTP, componentFoo.prop$})
 
   // create subscription for target stream 
   // subscription is actually `side effect`   
-  const value$ProxySub = componentBar.value$.subscribe(value$Proxy$)
+  const valueProxySub = componentBar.value$.subscribe(valueProxy$)
 
   return {
     DOM: componentFoo.DOM,
@@ -80,6 +80,21 @@ Just add plugin to to your `.babelrc` file or transform options:
   "plugins": ["cycle-circular"]
 }
 ```
+
+### Conventions
+
+*NB!*
+ Current version works only with `rx@4.x.x` requires that you have `Subject`, or `Rx` **imported**:
+ ```
+ import {Subject} from 'rx'
+ ```
+ or 
+ ```
+ const Rx = require('rx')
+ ```
+ 
+ ### Options
+
 
 There are some options that you can supply to the plugin:
 * **identifiers** (default: null) - regExp pattern(s) for matching identifiers names that should be proxied. 

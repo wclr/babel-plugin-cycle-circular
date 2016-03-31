@@ -59,7 +59,7 @@ const getSubjectLiteral = ({globals, references}, options) => {
     )
     if (rxRef){
       return rxRef + '.Subject'
-    }
+    } 
   }
 }
 
@@ -74,6 +74,8 @@ export default function ({types: t}) {
 
     let matchIdentifiers = toArray(options.identifiers)
       .map(match => new RegExp(match))
+    
+    let mainScope = scope
     
     const matchIdentifierName = (name) => {
       if (matchIdentifiers.length){
@@ -111,7 +113,7 @@ export default function ({types: t}) {
       let subscription = t.variableDeclaration('const', [
         t.variableDeclarator(subIdentifier, subCallExpression)
       ])
-
+      mainScope._hasCircularProxies = true
       return {
         identifier,
         declaration, subscription,
@@ -176,7 +178,8 @@ export default function ({types: t}) {
 
   return  {
     visitor: {
-      Program(path) {
+      Program (path) {
+        
         const scope = path.context.scope
         const options = this.opts
         const filename = this.file.opts.filename
