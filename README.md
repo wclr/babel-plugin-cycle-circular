@@ -100,6 +100,7 @@ There are some options that you can supply to the plugin:
 * **include** (default: '') - includes files my `minimatch` mask (can be array)
 * **exclude** (default: '') - includes files my `minimatch` mask (can be array)
 
+**Options example:**
 This options for plugin will exclude from processing all files in `models/` folder 
 and will proxy only if last identifier of reference ends with `$` for example `component.value$`,
 (references like `component.value` won't be handled)
@@ -108,11 +109,12 @@ and will proxy only if last identifier of reference ends with `$` for example `c
   "presets": ["es2015"],
   "plugins": [
     ["cycle-circular", {
-        identifiers: ['\\$$'] 
-        exlude: ['**/models/**']  
+        identifiers: ["\\$$"] 
+        exlude: ["**/models/**"]  
     }]
   ]
 }
+```
 
 ## Tests
 Tests checks if actual transformed source from `fixtures` 
