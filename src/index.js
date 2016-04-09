@@ -1,12 +1,13 @@
 import minimatch from 'minimatch'
 
-const getIdentifierNameFromNode = (node) => {
-  if (node.name || node.value){
-    return node.name || ('V' + node.value)
+const getIdentifierFromPath = (path) => {
+  while (path.parentPath.type == 'MemberExpression') {
+    path = path.parentPath
   }
-  else {
-    return getIdentifierNameFromNode(node.object)
-      + '_' + getIdentifierNameFromNode(node.property)
+  var node = path.node
+  return {
+    source: path.getSource(),
+    path
   }
 }
 
@@ -19,20 +20,7 @@ const checkItems = (items, checkFn) =>
     return checked || checkFn(item)
   }, false)
 
-const getIdentifierFromPath = (path) => {
-  // path.parentPath.node.type === 'Identifier'
-  while (path.parentPath.type == 'MemberExpression') {
-    path = path.parentPath
-  }
-  var node = path.node
-  return {
-    source: path.getSource(),
-    name: getIdentifierNameFromNode(node),
-    path
-  }
-}
-
-const checkScope = (scope) => {
+const checkScopeIsFunction = (scope) => {
   // FunctionDeclaration
   // ArrowFunctionExpression
   return /Function/.test(scope.block.type)
@@ -45,33 +33,15 @@ const getScopeCircular = (scope) => {
   scope._cycleCircular = {
     identifiers: {},
     declarations: {},
-    proxies: {}
+    proxies: {},
+    proxiesCount: 0
   }
   return scope._cycleCircular
 }
 
-const getSubjectLiteral = ({globals, references}, options) => {
-  if (references.Subject){
-    return 'Subject'
-  } else {
-    const rxRef = checkItems([options.rxRef, 'Rx', 'rx'],
-      (prop) => ((references[prop] || globals[prop]) && prop)
-    )
-    if (rxRef){
-      return rxRef + '.Subject'
-    } 
-  }
-}
-
-const canMakeCircular = (scope, options) => {
-  return getSubjectLiteral(scope, options)
-}
-
 export default function ({types: t}) {
-  const makeVisitor = (scope, options) => {
-    let subjectLiteral = getSubjectLiteral(scope, options)
-    let subjectIdentifier = t.identifier(subjectLiteral)
-
+  const makeVisitor = (scope, options, lib) => {
+    
     let matchIdentifiers = toArray(options.identifiers)
       .map(match => new RegExp(match))
     
@@ -85,49 +55,13 @@ export default function ({types: t}) {
       }
       return true
     }
-
-    const getSubFinallyExpression = function(proxyIdentifier, subIdentifier){
-      const disposeExpression = t.callExpression(
-        t.memberExpression(subIdentifier, t.identifier('dispose')),
-        []
-      )
-      return t.callExpression(
-        t.memberExpression(proxyIdentifier, t.identifier('finally')),
-        [t.arrowFunctionExpression([], disposeExpression)]
-      )
-    }
     
-    const makeProxy = (toProxy) => {
-      let idName = toProxy.name + '__Proxy'
-      let identifier = t.identifier(idName)
-
-      let newExpression = t.newExpression(subjectIdentifier, [])
-      let declaration = t.variableDeclaration('const', [
-        t.variableDeclarator(identifier, newExpression)
-      ])
-      
-      let originIdentifier = t.identifier(toProxy.source + '.subscribe')
-      let subscriberIdentifier = t.identifier(idName + '.asObserver()')
-      let subCallExpression = t.callExpression(originIdentifier, [subscriberIdentifier])
-      let subIdentifier =  t.identifier(toProxy.name + '__ProxySub')
-      let subscription = t.variableDeclaration('const', [
-        t.variableDeclarator(subIdentifier, subCallExpression)
-      ])
-      mainScope._hasCircularProxies = true
-      return {
-        identifier,
-        declaration, subscription,
-        finally: getSubFinallyExpression(identifier, subIdentifier)
-      }
-    }
-
     return {
       ReferencedIdentifier (path) {
-        if (!checkScope(path.scope)) return
-
+        if (!checkScopeIsFunction(path.scope)) return
         let _circular = getScopeCircular(path.scope)
 
-        let name = path.node.name
+        let name = '__' + path.node.name
 
         if (_circular.declarations[name]){
           return
@@ -137,37 +71,33 @@ export default function ({types: t}) {
       },
 
       VariableDeclaration (path) {
-        if (!checkScope(path.scope)) return
+        if (!checkScopeIsFunction(path.scope)) return
 
         let _circular = getScopeCircular(path.scope)
         var body = path.scope.block.body.body
+
         path.node.declarations.forEach(dec => {
-          let identifier = _circular.identifiers[dec.id.name]
+          let identifier = _circular.identifiers['__' + dec.id.name]
           if (identifier){
             identifier.paths.forEach((path) => {
               var identifierToProxy = getIdentifierFromPath(path)
-
-              let proxyName = identifierToProxy.name
-
-              if (!matchIdentifierName(proxyName)){
+              
+              if (!matchIdentifierName(identifierToProxy.source)){
                 return
               }
-
-              let proxyIndex =
-                (_circular.proxies[proxyName] || 0)
-              identifierToProxy.name += '_' + proxyIndex
-
-              let proxy = makeProxy(identifierToProxy)
-
+              let proxyName = '__Proxy' + _circular.proxiesCount
+              let proxy = lib.makeProxy(proxyName, identifierToProxy.source)
+              
               body.unshift(proxy.declaration)
-              identifierToProxy.path.replaceWith(proxy.finally)
+              identifierToProxy.path.replaceWith(proxy.replaceWith)
 
               let ret = body[body.length - 1].type == 'ReturnStatement'
                 ? body.pop() : null
               body.push(proxy.subscription)
               ret && body.push(ret)
 
-              _circular.proxies[proxyName] = proxyIndex + 1
+              _circular.proxiesCount++
+              mainScope._hasCircularProxies = true
             })
           }
           _circular.declarations[dec.id.name] = true
@@ -178,12 +108,11 @@ export default function ({types: t}) {
 
   return  {
     visitor: {
-      Program (path) {
-        
+      Program (path, state) {
         const scope = path.context.scope
         const options = this.opts
         const filename = this.file.opts.filename
-        
+
         const filterFiles = options.include || options.exclude
         if (filterFiles){
           let match = checkItems(toArray(filterFiles),
@@ -194,8 +123,13 @@ export default function ({types: t}) {
           }
         }
 
-        if (canMakeCircular(scope, options)){
-          path.traverse(makeVisitor(scope, options))
+        let lib, libName = options.lib || 'rx'
+        lib = require('./' + libName)
+        
+        path.traverse(makeVisitor(scope, options, lib))
+        
+        if (scope._hasCircularProxies){
+          lib.addImports(path.node, scope)
         }
       }
     }
