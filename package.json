@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-cycle-circular",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Babel plugin allowing to have circular dependencies in cycle.js functions.",
   "main": "lib/index.js",
   "keywords": [
