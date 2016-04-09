@@ -4,7 +4,7 @@ Babel plugin allowing to have circular dependencies with [cycle.js](http://cycle
 
 ## What?
 
-This (note that `bar` is ***used* before *declared*** in the code):
+This (note that **`bar`** is **used before declared** in the code):
 
 ```js
   const foo = Foo({value$: bar.value$, DOM})
@@ -71,7 +71,7 @@ const main = ({DOM, HTTP}) => {
 ```
 
 This also work for [`most.js`](https://github.com/cujojs/most) library, as if you write this: 
-```
+```js
 import {subject} from 'most-subject'
 import {ComponentFoo} from './ComponentFoo'
 import {ComponentBar} from './ComponentBar'
@@ -114,7 +114,7 @@ Just add plugin to to your `.babelrc` file or transform options:
 *NB!*
  Works with [`rxjs v4`](https://github.com/Reactive-Extensions/RxJS), 
  [`rxjs v5`](https://github.com/ReactiveX/rxjs) and [`most.js`](https://github.com/cujojs/most) ES6 sources.
- If you want to use CJS source you should `require` Subject (or subject) manually.
+ If you want to use CJS source you should `require` `Subject` manually.
  
 ### Options
 
@@ -143,9 +143,9 @@ and will proxy only if last identifier of reference ends with `$` for example `c
 
 ## Is it safe to use?
  
-Technically, it just traverse (scans) each function and finds variable references that go before declaration, 
-and applies `subject proxy` for it during `babel` transpilation. It is said that the plugin is experimental but 
-it does simple transformation of your code, so if something goes wrong you should see it during development. 
+Technically, it just traverse (scans) each function during `babel` transpilation of your code 
+to find variable references that go before declaration and applies *proxy* via *subject* . It was said that 
+the plugin is experimental so if something goes wrong you should see it during development. 
 
 ## Tests
 Tests checks if actual transformed source from `fixtures` 
