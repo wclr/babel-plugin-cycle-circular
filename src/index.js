@@ -1,14 +1,9 @@
 import minimatch from 'minimatch'
 
 const getIdentifierFromPath = (path) => {
-  while (path.parentPath.type == 'MemberExpression') {
-    path = path.parentPath
-  }
-  var node = path.node
-  return {
-    source: path.getSource(),
-    path
-  }
+  let type = path.parentPath.type
+  return type == 'MemberExpression' || type == 'CallExpression'
+    ? getIdentifierFromPath(path.parentPath) : path
 }
 
 const toArray = (thing) =>
@@ -80,16 +75,16 @@ export default function ({types: t}) {
           let identifier = _circular.identifiers['__' + dec.id.name]
           if (identifier){
             identifier.paths.forEach((path) => {
-              var identifierToProxy = getIdentifierFromPath(path)
-              
-              if (!matchIdentifierName(identifierToProxy.source)){
+              let identifierPath = getIdentifierFromPath(path)
+              let identifierSource = identifierPath.getSource()
+              if (!matchIdentifierName(identifierSource)){
                 return
               }
               let proxyName = '__Proxy' + _circular.proxiesCount
-              let proxy = lib.makeProxy(proxyName, identifierToProxy.source)
+              let proxy = lib.makeProxy(proxyName, identifierSource)
               
               body.unshift(proxy.declaration)
-              identifierToProxy.path.replaceWith(proxy.replaceWith)
+              identifierPath.replaceWith(proxy.replaceWith)
 
               let ret = body[body.length - 1].type == 'ReturnStatement'
                 ? body.pop() : null

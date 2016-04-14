@@ -1,6 +1,8 @@
 import * as t from 'babel-types'
 
-const subjectLiteral = 'Subject'
+//const subjectLiteral = 'Subject'
+const subjectLiteral = 'ReplaySubject'
+const subjectArguments = [t.identifier('1')]
 export const subjectIdentifier = t.identifier(subjectLiteral)
 
 export const addImports = (node, scope) => {
@@ -16,16 +18,21 @@ const getSubFinallyExpression = function(proxyIdentifier, subIdentifier){
     t.memberExpression(subIdentifier, t.identifier('dispose')),
     []
   )
+  let observersCount = t.memberExpression(proxyIdentifier, t.identifier('observers.length'));
+  const condition = t.ifStatement(
+    t.binaryExpression("===", observersCount, t.identifier('0')),
+    t.expressionStatement(disposeExpression)
+  )
   return t.callExpression(
     t.memberExpression(proxyIdentifier, t.identifier('finally')),
-    [t.arrowFunctionExpression([], disposeExpression)]
+    [t.arrowFunctionExpression([], t.blockStatement([condition]))]
   )
 }
 
 export const makeProxy = (name, source) => {
   let identifier = t.identifier(name)
 
-  let newExpression = t.newExpression(subjectIdentifier, [])
+  let newExpression = t.newExpression(subjectIdentifier, subjectArguments)
   let declaration = t.variableDeclaration('const', [
     t.variableDeclarator(identifier, newExpression)
   ])

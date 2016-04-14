@@ -41,14 +41,14 @@ sacrifice functional style and do the following with your hands:
 
 ```js
 // import subject which is usually not needed
-import {Subject} from 'rx'
+import {ReplaySubject} from 'rx'
 import {ComponentFoo} from './ComponentFoo'
 import {ComponentBar} from './ComponentBar'
 
 const main = ({DOM, HTTP}) => {
   // declare proxy subject which will be used to subscribe 
   // to target stream, and be a source for consumption
-  const valueProxy$ = new Subject()
+  const valueProxy$ = new ReplaySubject(1)
   // make proxy stream safe - when it ends (or terminates) 
   // remove subscription to prevent memory leak 
   const valueSafeProxy$ = valueProxy$.finally(() => {

@@ -1,11 +1,13 @@
-import { Subject } from 'rx';
+import { ReplaySubject } from 'rx';
 import { Component1 } from './component1';
 import { Component2 } from './component2';
 
 function mainFiltered({ DOM, HTTP }) {
-  const __Proxy0 = new Subject();
+  const __Proxy0 = new ReplaySubject(1);
 
-  var component1 = Component1({ value$: __Proxy0.finally(() => __Proxy0_Sub.dispose()), DOM });
+  var component1 = Component1({ value$: __Proxy0.finally(() => {
+      if (__Proxy0.observers.length === 0) __Proxy0_Sub.dispose();
+    }), DOM });
   var x = doNotProxyMe;
   var component2 = Component2({ HTTP });
   var doNotProxyMe = 2;
