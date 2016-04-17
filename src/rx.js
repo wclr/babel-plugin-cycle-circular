@@ -1,12 +1,23 @@
 import * as t from 'babel-types'
 
 //const subjectLiteral = 'Subject'
-const subjectLiteral = 'ReplaySubject'
-const subjectArguments = [t.identifier('1')]
-export const subjectIdentifier = t.identifier(subjectLiteral)
+//const subjectLiteral = 'ReplaySubject'
+//const subjectArguments = [t.identifier('1')]
+//const subjectArguments = []
+//const subjectIdentifier = t.identifier(subjectLiteral)
 
-export const addImports = (node, scope) => {
-  if (!scope.hasBinding('Subject')){
+export const getSubjectLiteral = (options) => {
+  return (options && options.replay) ? 'ReplaySubject' : 'Subject'
+}
+
+export const getSubjectArguments = (options) => {
+  return (options && options.replay) ? [t.identifier('1')] : []
+}
+
+export const addImports = (node, scope, options) => {
+  const subjectLiteral = getSubjectLiteral(options)
+  const subjectIdentifier = t.identifier(subjectLiteral)
+  if (!scope.hasBinding(subjectLiteral)){
     const subjectImportDeclaration = t.importDeclaration([
       t.importSpecifier(subjectIdentifier, subjectIdentifier)
     ], t.stringLiteral('rx'));
@@ -29,9 +40,11 @@ const getSubFinallyExpression = function(proxyIdentifier, subIdentifier){
   )
 }
 
-export const makeProxy = (name, source) => {
+export const makeProxy = (name, source, options) => {
   let identifier = t.identifier(name)
-
+  const subjectLiteral = getSubjectLiteral(options)
+  const subjectIdentifier = t.identifier(subjectLiteral)
+  const subjectArguments = getSubjectArguments(options)
   let newExpression = t.newExpression(subjectIdentifier, subjectArguments)
   let declaration = t.variableDeclaration('const', [
     t.variableDeclarator(identifier, newExpression)

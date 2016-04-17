@@ -15,6 +15,10 @@ const checkItems = (items, checkFn) =>
     return checked || checkFn(item)
   }, false)
 
+let checkMinimatch = (masks, filename) => checkItems(toArray(masks),
+  (mask) => minimatch(filename, mask)
+)
+
 const checkScopeIsFunction = (scope) => {
   // FunctionDeclaration
   // ArrowFunctionExpression
@@ -81,7 +85,7 @@ export default function ({types: t}) {
                 return
               }
               let proxyName = '__Proxy' + _circular.proxiesCount
-              let proxy = lib.makeProxy(proxyName, identifierSource)
+              let proxy = lib.makeProxy(proxyName, identifierSource, options)
               
               body.unshift(proxy.declaration)
               identifierPath.replaceWith(proxy.replaceWith)
@@ -110,12 +114,11 @@ export default function ({types: t}) {
 
         const filterFiles = options.include || options.exclude
         if (filterFiles){
-          let match = checkItems(toArray(filterFiles),
-            (mask) => minimatch(filename, mask)
-          )
-          if (options.include ? !match : match){
-            return
-          }
+          let match = checkMinimatch(filterFiles, filename)
+          match = options.include
+            ? (!match && !checkMinimatch(options.exclude, filename))
+            : match
+          if (match){ return }
         }
 
         let lib, libName = options.lib || 'rx'
@@ -124,7 +127,7 @@ export default function ({types: t}) {
         path.traverse(makeVisitor(scope, options, lib))
         
         if (scope._hasCircularProxies){
-          lib.addImports(path.node, scope)
+          lib.addImports(path.node, scope, options)
         }
       }
     }

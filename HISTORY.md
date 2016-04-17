@@ -1,5 +1,5 @@
 ### v0.2.0
-    * Replace Rx `Subject()` to `ReplaySubject(1)`
+    * Added experimental support for `ReplaySubject(1)` with `replay` option 
     * Rx `finally` check proxy.observers count before subscribtion `dispose`
     * minimatch dependency
 

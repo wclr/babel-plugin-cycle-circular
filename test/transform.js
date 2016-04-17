@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { transformFileSync } from 'babel-core'
-import plugin from '../src'
+import plugin from '../lib'
 
 function trim(str) {
   return str.replace(/^\s+|\s+$/, '')
@@ -20,7 +20,8 @@ export const transformFixtures = (handler) => {
           [plugin, {
             identifiers: '\\$($|\\.)',
             include: '',
-            exclude: '**/exlude/**',
+            exclude: '**/exclude/**',
+            replay: true,
             lib: lib
           }]
         ]
